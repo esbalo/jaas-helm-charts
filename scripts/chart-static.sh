@@ -1,13 +1,25 @@
 # SPDX-FileCopyrightText: The helm-charts Authors
 # SPDX-License-Identifier: 0BSD
 
-# The per-chart static gates: ct lint, helm-unittest, helm-docs render check,
-# kube-score (default + every ci/ values variant), and kubeconform. Takes the
+# The per-chart static gates: helm-schema, ct lint, helm-unittest, helm-docs
+# render check, kube-score (default + every ci/ values variant), and
+# kubeconform. Takes the
 # chart name as $1. CRDs must already be vendored (the caller runs
 # hack/vendor-chart-crds.sh first) so every gate renders against the CRDs the
 # package ships.
 chart="$1"
 c="charts/${chart}/"
+
+# Generate the values schema before anything renders. Helm validates values
+# against values.schema.json whenever the file is present, and the file is
+# gitignored because release-charts.sh generates it into the package — so
+# without this step the gates validate against nothing, while a consumer
+# installing the released chart validates against a schema no gate ever
+# exercised. Regenerating here also means a leftover from an earlier run can
+# never go stale: it is overwritten every time the gate runs.
+echo "::group::helm-schema ${chart}"
+helm-schema -c "$c" -k additionalProperties
+echo "::endgroup::"
 
 echo "::group::ct lint ${chart}"
 ct lint --config ct.yaml --charts "charts/${chart}"

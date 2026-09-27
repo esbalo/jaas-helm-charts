@@ -121,12 +121,15 @@ tests:
           path: webhooks[0].matchConditions[0].name
           value: skip-kube-system
   - it: fails render on an unrecognised certMode
+    # The generated values schema rejects the value before any template runs, so
+    # that is the message an operator sees. The template's own `fail` stays
+    # underneath it as the fallback for an install that skips schema validation.
     set:
       webhook.certMode: bogus
     template: templates/validatingwebhookconfiguration.yaml
     asserts:
       - failedTemplate:
-          errorMessage: webhook.certMode must be 'cert-manager' or 'self-signed', got "bogus"
+          errorPattern: "at '/webhook/certMode': value must be one of 'cert-manager', 'self-signed'"
   - it: renders for both valid certMode values
     template: templates/validatingwebhookconfiguration.yaml
     set:
