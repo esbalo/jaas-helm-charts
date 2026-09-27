@@ -849,6 +849,35 @@ tests:
           path: spec.template.spec.containers[0].args
           content: --storage-base-url=https://artifacts.example.com
 
+  - it: keeps readiness waiting for the operator by default
+    set:
+      operator:
+        enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --readiness-requires-operator=once
+
+  - it: passes operator.readinessRequiresOperator=never through
+    # The renderer and the artifact server work without a cluster, so this is how
+    # an install keeps them in their Services through an apiserver outage.
+    set:
+      operator:
+        enabled: true
+        readinessRequiresOperator: never
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --readiness-requires-operator=never
+
+  - it: omits the readiness mode outside operator mode
+    # The binary ignores the flag without --enable-flux-integration, so the arg
+    # stays inside the operator-gated block.
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: --readiness-requires-operator=once
+
   - it: passes --no-cross-namespace-refs verbatim
     set:
       operator:

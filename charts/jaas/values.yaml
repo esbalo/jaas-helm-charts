@@ -414,6 +414,24 @@ operator:
   # apiserver/S3 incidents while bounding the wait.
   maxWithdrawWait: 1h
 
+  # @schema
+  # type: string
+  # enum:
+  #   - once
+  #   - never
+  # @schema
+  # -- Whether the readiness probe waits for the operator. `once` keeps the probe
+  # at 503 until the manager's cache has synced, so a rolling update stops at a
+  # pod whose operator cannot start instead of replacing a working replica; a
+  # manager that dies later does not withdraw a pod that has been serving.
+  # `never` ties readiness to the HTTP listeners alone, which keeps the Jsonnet
+  # renderer and the artifact server in their Services through an apiserver
+  # outage — neither needs a cluster — and leaves the operator's own state to
+  # `GET /operator` and `jaas_operator_available`. Either way the pod is never
+  # restarted over a degraded operator: liveness is unconditional and the
+  # manager is retried in place.
+  readinessRequiresOperator: once
+
   # On `helm uninstall`, run a pre-delete Job that bulk-deletes every
   # JsonnetSnippet so the operator's finalizer drops the published
   # ExternalArtifact + tarball BEFORE the operator pod itself is

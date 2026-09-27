@@ -177,6 +177,7 @@ spec:
             - --max-artifact-bytes={{ .Values.operator.storage.maxArtifactBytes }}
             - --artifact-gc-grace={{ .Values.operator.storage.gcGrace }}
             - --max-withdraw-wait={{ .Values.operator.maxWithdrawWait }}
+            - --readiness-requires-operator={{ .Values.operator.readinessRequiresOperator }}
             - --storage-sweep-interval={{ .Values.operator.storage.sweep.interval }}
             - --storage-sweep-max-tmp-age={{ .Values.operator.storage.sweep.maxTmpAge }}
             {{- with .Values.operator.tracing.endpoint }}
