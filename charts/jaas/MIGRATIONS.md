@@ -8,7 +8,7 @@ SPDX-License-Identifier: 0BSD
 Breaking changes for the `jaas` chart, newest first. Each release links here;
 review the entries above your installed version before `helm upgrade`.
 
-## 2026.9.24
+## After jaas-2026.9.27164736
 
 Egress to the kube-apiserver is its own value now, and the chart renders it in
 the selected engine's own dialect. Two installs need an edit before
