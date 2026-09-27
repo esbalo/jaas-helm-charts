@@ -8,10 +8,24 @@ SPDX-License-Identifier: 0BSD
 {{- .Chart.Name -}}
 {{- end -}}
 
+{{- /* The registry one image is pulled from: global.imageRegistry when it is set,
+       otherwise that image's own registry key. Every image reference the chart
+       composes goes through here, so a cluster that admits one registry needs one
+       value rather than one override per image — and a new image added later
+       cannot quietly escape it. `with` rather than `dig`, because .Values is a
+       chartutil.Values and dig only accepts a plain map. Mirrors jaas. */ -}}
+{{- define "stageset.registry" -}}
+{{- $global := "" -}}
+{{- with .root.Values.global -}}
+{{- $global = default "" .imageRegistry -}}
+{{- end -}}
+{{- default .registry $global -}}
+{{- end -}}
+
 {{- /* The image reference, registry/repository:tag (tag defaults to appVersion). */ -}}
 {{- define "stageset.image" -}}
 {{- $tag := .Values.image.tag | default .Chart.AppVersion -}}
-{{- printf "%s/%s:%s" .Values.image.registry .Values.image.repository $tag -}}
+{{- printf "%s/%s:%s" (include "stageset.registry" (dict "root" . "registry" .Values.image.registry)) .Values.image.repository $tag -}}
 {{- end -}}
 
 {{- /* Common metadata labels (includes version-bound labels). */ -}}
@@ -64,7 +78,7 @@ app.kubernetes.io/part-of: {{ .Chart.Name }}
        watched namespace rather than a shell loop. */ -}}
 {{- define "stageset.cleanupContainer" -}}
 - name: {{ .name }}
-  image: "{{ .root.Values.cleanupOnDelete.image.registry }}/{{ .root.Values.cleanupOnDelete.image.repository }}:{{ .root.Values.cleanupOnDelete.image.tag }}"
+  image: "{{ include "stageset.registry" (dict "root" .root "registry" .root.Values.cleanupOnDelete.image.registry) }}/{{ .root.Values.cleanupOnDelete.image.repository }}:{{ .root.Values.cleanupOnDelete.image.tag }}"
   imagePullPolicy: {{ .root.Values.cleanupOnDelete.image.pullPolicy }}
   args:
     - delete

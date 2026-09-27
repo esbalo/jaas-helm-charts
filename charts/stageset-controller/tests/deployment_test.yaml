@@ -12,6 +12,24 @@ tests:
       - matchRegex:
           path: spec.template.spec.containers[0].image
           pattern: ^ghcr\.io/metio/stageset-controller:[0-9.]+$
+  - it: pulls the controller image from global.imageRegistry when it is set
+    # A cluster that admits one registry needs one value, not one override per
+    # image. The sweep in chart-static catches an image that escapes the helper.
+    set:
+      global:
+        imageRegistry: harbor.example.com/mirror
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: '^harbor\.example\.com/mirror/metio/stageset-controller:[0-9.]+$'
+  - it: keeps a per-image registry override working
+    set:
+      image:
+        registry: internal.example.com
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: '^internal\.example\.com/metio/stageset-controller:[0-9.]+$'
   - it: pins spec.replicas to replicas.min at the non-autoscaling default
     asserts:
       # replicas.min is the fixed Deployment count unless an HPA is rendered

@@ -153,6 +153,30 @@ tests:
           path: spec.template.spec.containers[0].imagePullPolicy
           value: Always
 
+  - it: pulls the cleanup image from global.imageRegistry when it is set
+    # This is the image an uninstall stands or falls on: the pre-delete hook runs
+    # before anything else, so a cluster that admits one registry rejects the Job
+    # and leaves the release stuck in a failed uninstall.
+    set:
+      global:
+        imageRegistry: harbor.example.com/mirror
+    documentSelector:
+      path: kind
+      value: Job
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: harbor.example.com/mirror/kubectl:v1.34.0
+
+  - it: keeps the cleanup image's own registry by default
+    documentSelector:
+      path: kind
+      value: Job
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: '^registry\.k8s\.io/kubectl:'
+
   - it: honors a custom timeout
     set:
       cleanupOnDelete:
