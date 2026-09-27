@@ -55,6 +55,45 @@ for vf in "$c"ci/*-values.yaml; do
   render "$(basename "$vf")" -f "$vf"
 done
 
+# Every image reference a chart composes must honour global.imageRegistry, so a
+# cluster that admits one registry needs one value instead of one override per
+# image — and so an image added later cannot quietly escape it. A per-path unit
+# test cannot catch a NEW hardcoded image; this can. Runs only for charts that
+# declare the value, so adding it to another chart opts that chart in.
+if grep -qE '^[[:space:]]+imageRegistry:' "${c}values.yaml"; then
+  echo "::group::image-registry sweep ${chart}"
+  sentinel="sweep.invalid/mirror"
+  sweep_render() {
+    helm template release-x "$c" --set "global.imageRegistry=${sentinel}" "$@" |
+      grep -oE '^[[:space:]]*(image|reference):[[:space:]]*"?[^"[:space:]]+' |
+      sed -E 's/^[[:space:]]*(image|reference):[[:space:]]*"?//' |
+      sort -u
+  }
+  escaped=""
+  # tests/sweep-values.yaml turns on optional features that render an image but
+  # that no ci/ values file enables, so the sweep sees those too.
+  for vf in "" "${c}tests/sweep-values.yaml" "$c"ci/*-values.yaml; do
+    [ -z "$vf" ] || [ -e "$vf" ] || continue
+    if [ -z "$vf" ]; then refs="$(sweep_render)"; else refs="$(sweep_render -f "$vf")"; fi
+    for ref in $refs; do
+      case "$ref" in
+        "${sentinel}"/*) ;;
+        *) escaped="${escaped}${ref} (${vf:-default values})"$'\n' ;;
+      esac
+    done
+  done
+  if [ -n "$escaped" ]; then
+    echo "images not pulled from global.imageRegistry:"
+    printf '%s' "$escaped"
+    echo "compose each one through the chart's registry helper, or — for a value that"
+    echo "is a whole image reference rather than a registry plus repository — leave it"
+    echo "to the operator and say so in values.yaml."
+    exit 1
+  fi
+  echo "every rendered image honours global.imageRegistry"
+  echo "::endgroup::"
+fi
+
 echo "::group::kubeconform ${chart}"
 helm template release-x "$c" |
   kubeconform -strict -summary -ignore-missing-schemas \

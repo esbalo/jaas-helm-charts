@@ -1754,3 +1754,60 @@ tests:
             name: webhook-cert
             mountPath: /tmp/k8s-webhook-server/serving-certs
             readOnly: true
+
+  # ------------------------------------------------------------------
+  # global.imageRegistry — one registry for every image the chart composes
+  # ------------------------------------------------------------------
+
+  - it: leaves every image on its own registry by default
+    set:
+      operator:
+        enabled: true
+      libraries:
+        grafonnet:
+          enabled: true
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: '^ghcr\.io/metio/jaas:'
+      - matchRegex:
+          path: spec.template.spec.volumes[?(@.name=="library-grafonnet")].image.reference
+          pattern: '^ghcr\.io/metio/joi-grafana-grafonnet:'
+
+  - it: pulls every composed image from global.imageRegistry when it is set
+    # A cluster that admits one registry needs one value, not one override per
+    # image. The sweep in chart-static catches an image that escapes the helper.
+    set:
+      global:
+        imageRegistry: harbor.example.com/mirror
+      operator:
+        enabled: true
+      libraries:
+        grafonnet:
+          enabled: true
+        docsonnet:
+          enabled: true
+        xtd:
+          enabled: true
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: '^harbor\.example\.com/mirror/metio/jaas:'
+      - matchRegex:
+          path: spec.template.spec.volumes[?(@.name=="library-grafonnet")].image.reference
+          pattern: '^harbor\.example\.com/mirror/metio/joi-grafana-grafonnet:'
+      - matchRegex:
+          path: spec.template.spec.volumes[?(@.name=="library-docsonnet")].image.reference
+          pattern: '^harbor\.example\.com/mirror/metio/joi-jsonnet-libs-docsonnet:'
+      - matchRegex:
+          path: spec.template.spec.volumes[?(@.name=="library-xtd")].image.reference
+          pattern: '^harbor\.example\.com/mirror/metio/joi-jsonnet-libs-xtd:'
+
+  - it: keeps a per-image registry override working
+    set:
+      image:
+        registry: internal.example.com
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: '^internal\.example\.com/metio/jaas:'

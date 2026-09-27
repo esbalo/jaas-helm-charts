@@ -130,7 +130,7 @@ spec:
       {{- end }}
       containers:
         - name: jaas
-          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ include "jaas.registry" (dict "root" $ "registry" .Values.image.registry) }}/{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - "--listen-address={{ .Values.arguments.listenAddress }}"
@@ -371,19 +371,19 @@ spec:
         {{ if .Values.libraries.grafonnet.enabled }}
         - name: library-grafonnet
           image:
-            reference: "{{ .Values.libraries.grafonnet.registry }}/{{ .Values.libraries.grafonnet.repository }}:{{ .Values.libraries.grafonnet.version }}"
+            reference: "{{ include "jaas.registry" (dict "root" $ "registry" .Values.libraries.grafonnet.registry) }}/{{ .Values.libraries.grafonnet.repository }}:{{ .Values.libraries.grafonnet.version }}"
             pullPolicy: IfNotPresent
         {{ end }}
         {{ if .Values.libraries.docsonnet.enabled }}
         - name: library-docsonnet
           image:
-            reference: "{{ .Values.libraries.docsonnet.registry }}/{{ .Values.libraries.docsonnet.repository }}:{{ .Values.libraries.docsonnet.version }}"
+            reference: "{{ include "jaas.registry" (dict "root" $ "registry" .Values.libraries.docsonnet.registry) }}/{{ .Values.libraries.docsonnet.repository }}:{{ .Values.libraries.docsonnet.version }}"
             pullPolicy: IfNotPresent
         {{ end }}
         {{ if .Values.libraries.xtd.enabled }}
         - name: library-xtd
           image:
-            reference: "{{ .Values.libraries.xtd.registry }}/{{ .Values.libraries.xtd.repository }}:{{ .Values.libraries.xtd.version }}"
+            reference: "{{ include "jaas.registry" (dict "root" $ "registry" .Values.libraries.xtd.registry) }}/{{ .Values.libraries.xtd.repository }}:{{ .Values.libraries.xtd.version }}"
             pullPolicy: IfNotPresent
         {{ end }}
         {{ range $name, $image := .Values.additionalLibraries }}

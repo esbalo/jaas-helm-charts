@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: The helm-charts Authors
+# SPDX-License-Identifier: 0BSD
+
+# Values for the image-registry sweep in scripts/chart-static.sh only: they turn
+# on every optional feature that renders an image, so the sweep sees all of them.
+# Deliberately not under ci/, because chart-testing installs every file there and
+# these would make `ct install` pull OCI artifact volumes on clusters whose
+# Kubernetes is too old for the image-volume feature.
+#
+# `snippets` and `additionalLibraries` are left out on purpose: their values are
+# whole image references rather than a registry plus repository, so they are the
+# operator's to point at a mirror and the sweep must not expect a prefix on them.
+operator:
+  enabled: true
+  defaultServiceAccount: default
+libraries:
+  grafonnet:
+    enabled: true
+  docsonnet:
+    enabled: true
+  xtd:
+    enabled: true

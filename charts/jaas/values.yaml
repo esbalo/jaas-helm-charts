@@ -1,6 +1,24 @@
 # SPDX-FileCopyrightText: The helm-charts Authors
 # SPDX-License-Identifier: 0BSD
 
+# @schema
+# additionalProperties: false
+# @schema
+# -- Settings shared with every image this chart renders.
+global:
+  # -- Registry every image is pulled from, overriding the per-image `registry`
+  # keys (image.registry, operator.cleanupOnDelete.image.registry, and each
+  # libraries.*.registry). Empty keeps each image's own default, so an existing
+  # install is unaffected. Set it to a mirror or a private registry — including a
+  # path prefix if the mirror namespaces its upstreams — when a cluster admits
+  # images from one host only:
+  #   global:
+  #     imageRegistry: harbor.example.com/dockerhub-proxy
+  # The `snippets` and `additionalLibraries` maps take whole image references
+  # rather than a registry plus repository, so they are not rewritten; point
+  # those at the mirror directly.
+  imageRegistry: ""
+
 # -- CRD lifecycle. The chart ships the controller's CRDs under templates/ so a
 # `helm upgrade` applies schema changes automatically. Set create=false to
 # manage them out-of-band — e.g. pre-installed cluster-wide, or in CI where the
