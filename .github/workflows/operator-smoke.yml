@@ -115,13 +115,19 @@ jobs:
           # a silent fallback masks a broken query (the floor is already enforced
           # by the awk filter above, so a non-empty result is always >= v2.7.0).
           [ -n "$flux" ] || { echo "::error::Flux release discovery failed"; exit 1; }
-          # Newest kind release — the pinned helm/kind-action's bundled kind can
-          # lag new node images ("unknown containerd config version: N"); pin the
-          # binary to the node image. Empty falls back to the action default.
+          # Newest kind release — the pinned helm/kind-action's bundled kind lags
+          # new node images, and the mismatch is fatal: an older kind writes a
+          # kubeadm.k8s.io/v1beta3 ClusterConfiguration that a v1.37.0 node image
+          # refuses outright, and an older one still fails on the containerd
+          # config version. Pin the binary to the node image.
+          #
+          # A discovery miss fails the job rather than falling back to the action
+          # default, because that default is exactly what breaks.
           kind=$(gh release list --repo kubernetes-sigs/kind --limit 30 \
                    --json tagName,isPrerelease \
                    --jq '.[] | select(.isPrerelease==false) | .tagName' \
             | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+          [ -n "$kind" ] || { echo "::error::kind release discovery failed"; exit 1; }
           {
             echo "k8s_latest=$k8s"
             echo "flux_latest=$flux"

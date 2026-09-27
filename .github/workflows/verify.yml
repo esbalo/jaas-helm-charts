@@ -94,7 +94,32 @@ jobs:
     timeout-minutes: 15
     outputs:
       versions: ${{ steps.compute.outputs.versions }}
+      kind: ${{ steps.kind.outputs.kind }}
     steps:
+      - id: kind
+        name: Newest kind release
+        # The kind binary bundled with the pinned helm/kind-action lags new node
+        # images, and the mismatch is fatal: kind 0.31 writes a
+        # kubeadm.k8s.io/v1beta3 ClusterConfiguration, which the kubeadm in a
+        # v1.37.0 node image refuses outright ("your configuration file uses an
+        # old API spec"). Pinning the binary to the newest release lets it
+        # configure whatever node image the matrix below discovered.
+        #
+        # A discovery miss fails the job rather than falling back to the action
+        # default, because that default is exactly what breaks.
+        env:
+          # Authenticated so the release query is billed to this repo's rate
+          # limit rather than the shared runner IP's.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          kind=$(curl -fsSL -H "Accept: application/vnd.github+json" \
+                   -H "Authorization: Bearer $GH_TOKEN" \
+                   "https://api.github.com/repos/kubernetes-sigs/kind/releases?per_page=30" \
+            | jq -r '.[] | select(.prerelease==false) | .tag_name' \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+          [ -n "$kind" ] || { echo "::error::kind release discovery failed"; exit 1; }
+          echo "kind=$kind" >> "$GITHUB_OUTPUT"
+          echo "kind=$kind"
       - id: compute
         name: Newest N minors of kindest/node, latest patch each
         run: |
@@ -139,6 +164,7 @@ jobs:
       - uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f # v2
       - uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1
         with:
+          version: ${{ needs.k8s-matrix.outputs.kind }}
           node_image: kindest/node:${{ matrix.k8s }}
       - name: Install cluster prerequisites
         # cert-manager (webhook cert-manager mode), the Flux source-controller
