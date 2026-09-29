@@ -31,14 +31,23 @@ crds:
 ports:
   # -- Used by the /jsonnet endpoint
   http: 8080
-  # -- Used by startup, readiness, and liveness probes
+  # -- Probes, and in operator mode the operator's own status. `/live` is an
+  # unconditional 200, so an operator that cannot start never restarts the pod:
+  # its manager is retried in place. `/start` flips once the listeners are bound.
+  # `/ready` waits for the operator per operator.readinessRequiresOperator, and
+  # only ratchets up — a manager that dies later does not withdraw a pod that has
+  # been serving, because the Jsonnet renderer and the artifact server need no
+  # cluster. `/operator` answers 503 with the reason, since when, and how many
+  # times the manager has been started.
   management: 8081
   # -- Used by the operator's storage HTTP server (operator.enabled only)
   storage: 8082
-  # -- Used by controller-runtime's Prometheus metrics endpoint
-  # (operator.enabled only). Defaults to 8083 to avoid the collision
-  # with controller-runtime's own :8080 default and the jsonnet HTTP
-  # port. Set to 0 in operator.metrics.enabled to disable entirely.
+  # -- Prometheus metrics (operator.enabled only). Bound by the binary rather than
+  # by the controller-runtime manager, so the series stay scrapeable while the
+  # manager is the thing that is down — which is when `jaas_operator_available`
+  # carries information. Defaults to 8083 to avoid the collision with
+  # controller-runtime's own :8080 default and the jsonnet HTTP port. Set to 0 in
+  # operator.metrics.enabled to disable entirely.
   metrics: 8083
   # -- Used by the validating admission webhook (operator.webhook.enabled only)
   webhook: 9443
