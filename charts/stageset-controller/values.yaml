@@ -62,9 +62,17 @@ replicas:
 
 # -- Ports the controller binds.
 ports:
-  # -- controller-runtime Prometheus metrics
+  # -- Prometheus metrics. Bound by the binary rather than by the controller
+  # manager, so the series stay scrapeable while the manager is the thing that is
+  # down — which is when `stageset_manager_available` carries information.
   metrics: 8080
-  # -- /healthz + /readyz probes
+  # -- Probes, and the manager's own status. `/healthz` is an unconditional 200,
+  # so a manager that cannot start never restarts the pod: it is retried in place
+  # instead. `/readyz` tracks whether the manager is reconciling, so the pod
+  # leaves its Services while it is not — nothing it serves works without the
+  # manager, the webhook and the gate included. `/manager` answers 503 with the
+  # reason, since when, and how many times the manager has been started. Bound by
+  # the binary for the same reason as the metrics port.
   health: 8081
   # -- read-only Flagger stage-gate endpoint
   gate: 8082
